@@ -31,10 +31,10 @@ def incoming(update_id, players, phonebook, places) :
     for message in updates :
         users_voted.append(int(message.get('message').get('from').get('id')))
         text_voted.append(message.get('message').get('text'))
-    print 'u_v = ', users_voted
-    print 't_v = ', text_voted
+    print ('u_v = ', users_voted)
+    print ('t_v = ', text_voted)
     players = parse_incoming(users_voted, text_voted, phonebook, places, players)
-    print players
+    print (players)
     return players, update_id
 
 def check_mafs_murder (players, mafs, comissaire_access) :
@@ -106,7 +106,7 @@ def game(phonebook, places, players, mafs, goods, coms):
     update_id = int(onstart_update[-1].get('update_id')) + 1
     help_for_bot_programmer = onstart_update[-1].get('message').get('from').get('id')
     TelegramBot.sendMessage(help_for_bot_programmer, 'your id (last message in botchat) is %s' % help_for_bot_programmer)
-    print 'last update id = ', update_id
+    print ('last update id = ', update_id)
 
     send_starts(players, mafs, coms)
     
