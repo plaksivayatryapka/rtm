@@ -12,6 +12,6 @@ from functions import game
 #cits_count = 3
 
 players = {'0': {'id': 217967871, 'name': 'slavik', 'alive': 1, 'vote_kill': None, 'maf': None, 'check_maf': None, 'cure': None},\
-           '1': {'id': 265133215, 'name': 'polya', 'alive': 1, 'vote_kill': None, 'maf': 1}}
+           '1': {'id': 265133215, 'name': 'polya', 'alive': 1, 'maf': 1}}
 
 game(players)
