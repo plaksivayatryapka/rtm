@@ -1,15 +1,32 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-def send_starts(players, mafs, coms) :
+def send_starts(players) :
 
-    for maf in mafs :
-        TelegramBot.sendMessage(players[maf][0], "You're the maf!") # send message for mafs, where player[i][0] is chat id of user
-    for com in coms : # cycle needed because there may be more than one comm
-        TelegramBot.sendMessage(players[com][0], "You're the comissaire!") # send message for mafs
+    for key, values in players.items() :
+        if values['maf'] == 1 :
+            TelegramBot.sendMessage(values['id'], "You're the maf! Type the number of the player to vote for killing. For example: 3") # send message for mafs, where player[i][0] is chat id of user
+        if values['com'] == 1 :
+            TelegramBot.sendMessage(values['id'], "You're com")
+        if values['doc'] == 1 :
+            TelegramBot.sendMessage(values['id'], "You're doc")
+
+def incoming(update_id, players) :
+    users_voted = list()
+    text_voted = list()
+    updates = TelegramBot.getUpdates(offset = update_id)
+    update_id = update_id + len(updates)
+    for message in updates :
+        users_voted.append(int(message.get('message').get('from').get('id')))
+        text_voted.append(message.get('message').get('text'))
+    print 'u_v = ', users_voted
+    print 't_v = ', text_voted
+    players = parse_incoming(users_voted, text_voted, players)
+    print players
+    return players, update_id
 
 def parse_incoming(users_voted, text_voted, phonebook, places, players) :
-    for i in range(len(users_voted)) :
+    for user in users_voted :
         if users_voted[i] == phonebook.get('slavik') :
             users_voted[i] = places.get('slavik')
         elif users_voted[i] == phonebook.get('polya') :
@@ -22,20 +39,6 @@ def parse_incoming(users_voted, text_voted, phonebook, places, players) :
             players[user][2] = int(text_voted[i])
         i = i + 1
     return players
-
-def incoming(update_id, players, phonebook, places) :
-    users_voted = list()
-    text_voted = list()
-    updates = TelegramBot.getUpdates(offset = update_id)
-    update_id = update_id + len(updates)
-    for message in updates :
-        users_voted.append(int(message.get('message').get('from').get('id')))
-        text_voted.append(message.get('message').get('text'))
-    print 'u_v = ', users_voted
-    print 't_v = ', text_voted
-    players = parse_incoming(users_voted, text_voted, phonebook, places, players)
-    print players
-    return players, update_id
 
 def check_mafs_murder (players, mafs, comissaire_access) :
     votes_mafs = list()
@@ -92,24 +95,22 @@ def check_alive (players, mafs, goods) :
             for maf in mafs :
                 TelegramBot.sendMessage(players[maf][0], 'goods are dead!')
                 exit()
-
-def game(phonebook, places, players, mafs, goods, coms):
+'''
+def game(players):
     
     import telepot
     import time
     global telepot
     global TelegramBot
+    
     token = '361539776:AAFSBN4saYHbChStFQF2pqkwST9IpVGHJ5g' # bot id. Botname in telegram is realtimemafiabot
     TelegramBot = telepot.Bot(token)
 
     onstart_update = TelegramBot.getUpdates()
     update_id = int(onstart_update[-1].get('update_id')) + 1
-    help_for_bot_programmer = onstart_update[-1].get('message').get('from').get('id')
-    TelegramBot.sendMessage(help_for_bot_programmer, 'your id (last message in botchat) is %s' % help_for_bot_programmer)
-    print 'last update id = ', update_id
 
-    send_starts(players, mafs, coms)
-    
+    send_starts(players)
+    '''
     comissaire_access = True
 
     while 1:
@@ -124,4 +125,4 @@ def game(phonebook, places, players, mafs, goods, coms):
 
         check_alive (players, mafs, goods)
     
-        time.sleep(6)
+        time.sleep(6)'''
