@@ -18,6 +18,10 @@ class game(object):
         self.__player_num__ = 0
         self.__host__ = ''
         self.__roles__ = {
+            'maf_num':0,
+            'cit_num':0,
+            'doc_num':0,
+            'com_num':0,
             'mafs':[],
             'cits':[],
             'docs':[],
@@ -29,15 +33,49 @@ class game(object):
                                         'adr': adr,
                                         'name': 'Player_' + str(self.__player_num__+1),
                                         'alive': 1,
-                                        'vote_kill': None,
-                                        'maf': None,
-                                        'check_maf': None,
-                                        'cure': None
+                                        'pointer': 0,
+                                        'role': None
                                       }
         self.__player_num__ += 1
 
+    # выбор адресов соответствующих подгрупп
     def everybody(self):
         return [self.__players__[i]['adr'] for i in self.__players__]
+
+    def alive(self):
+        arr = []
+        for i in self.__players__:
+            if self.__players__[i]['alive']:
+                arr.append(self.__players__[i]['adr'])
+        return arr
+
+    def mafs(self):
+        arr = []
+        for i in self.__players__:
+            if (self.__players__[i]['role'] == 'maf'):
+                arr.append(self.__players__[i]['adr'])
+        return arr
+
+    def cits(self):
+        arr = []
+        for i in self.__players__:
+            if (self.__players__[i]['role'] == 'cit'):
+                arr.append(self.__players__[i]['adr'])
+        return arr
+
+    def coms(self):
+        arr = []
+        for i in self.__players__:
+            if (self.__players__[i]['role'] == 'com'):
+                arr.append(self.__players__[i]['adr'])
+        return arr
+
+    def docs(self):
+        arr = []
+        for i in self.__players__:
+            if (self.__players__[i]['role'] == 'doc'):
+                arr.append(self.__players__[i]['adr'])
+        return arr
 
     def say(self, players, message):
         for id in players:
@@ -64,6 +102,8 @@ class game(object):
         return 0
 
     def reload_abilities(self):
+        None
+    def action(self, ):
         None
 
 def msg_handler(adr, msg):
