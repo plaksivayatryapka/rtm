@@ -5,11 +5,14 @@ import time
 import telepot
 from pprint import pprint
 
+
 global games_list
 games_list = []
 
 class game(object):
     def __init__(self):
+        self.__started__ = 0
+        self.__current_round__ = 0
         self.__game_id__ = 0
         self.__players__ = {}
         self.__player_num__ = 0
@@ -36,7 +39,11 @@ class game(object):
     def everybody(self):
         return [self.__players__[i]['adr'] for i in self.__players__]
 
-    def print_names(self, players):
+    def say(self, players, message):
+        for id in players:
+            bot.sendMessage(id, message)
+
+    def report_status(self, players):
         message = ''
         for player_id in self.__players__:
             message += str(player_id) + ' - ' + self.__players__[player_id]['name'] + ' \n'
@@ -56,60 +63,84 @@ class game(object):
                 return id
         return 0
 
-def main(msg):
-    content_type, chat_type, chat_id = telepot.glance(msg) # расшифровка сообщения
-    if content_type == 'text':
+    def reload_abilities(self):
+        None
 
-        if (msg['text'] == '/start_game'):  # Хостится игра
-            host = chat_id
-            game_id = random.randrange(0,100)
-            print('game ' + str(game_id) + ' starting...')
-            global g
-            g = game()
-            g.__game_id__ = game_id
-            g.__host__ = host
-            g.add_player(host)
-            games_list.append((game_id))
-            bot.sendMessage(chat_id, 'game ' + str(game_id) + ' starting')
+def msg_handler(adr, msg):
+    if (msg == '/start_game'):  # Хостится игра
+        host = adr
+        game_id = random.randrange(0,100)
+        print('game ' + str(game_id) + ' starting...')
+        global g
+        g = game()
+        g.__game_id__ = game_id
+        g.__host__ = host
+        g.add_player(host)
+        games_list.append((game_id))
+        bot.sendMessage(adr, 'game ' + str(game_id) + ' starting')
 
-        if (msg['text'] == '/game_list'):  # Проверка списка игр
-            bot.sendMessage(chat_id, str(games_list))
+    if (msg == '/go'):  # Хостится игра
+        if adr == g.__host__:
+            # Сюда проверки на укомплектованность
+            g.__started__ = 1
+            g.__current_round__ = 1
+            g.say(g.everybody(), 'GAME IS STARTED')
+            g.say(g.everybody(), 'ROUND 1')
 
-        if (msg['text'] == '/players_adr'):  # Проверка айдишников игроков
-            if ('g' in globals()):
-                bot.sendMessage(chat_id, g.everybody())
+    if (msg == '/game_list'):  # Проверка списка игр
+        bot.sendMessage(adr, str(games_list))
 
-        if (msg['text'] == '/player_names'):  # Проверка списка игроков
-            if ('g' in globals()):
-                g.print_names([chat_id])
+    if (msg == '/players_adr'):  # Проверка айдишников игроков
+        if ('g' in globals()):
+            bot.sendMessage(adr, g.everybody())
 
-        if (msg['text'] == '/countdown'):  # Всем 3-х секундное ожидание
-            if ('g' in globals()):
-                g.countdown(3, 1, g.everybody())
+    if (msg == '/player_names'):  # Проверка списка игроков
+        if ('g' in globals()):
+            g.report_status([adr])
 
-
-
-        m = re.search('/change_name ', msg['text'])  # Смена имени
-        if (m != None):
-            new_name = (msg['text'][m.span()[1]:])
-            if ('g' in globals()):
-                g.__players__[g.get_id(chat_id)]['name'] = new_name
-
-        m = re.search('/connect ', msg['text']) # Коннект к игре
-        if (m != None):
-            connect_to = int(msg['text'][m.span()[1]: ])
-            if (connect_to in games_list):
-                if (g.__players__ == {}):
-                    bot.sendMessage(chat_id, 'connected')
-                    g.add_player(chat_id) # добавляем игрока
-                elif (chat_id not in list(g.__players__.keys())):
-                    bot.sendMessage(chat_id, 'connected')
-                    g.add_player(chat_id) # добавляем игрока
-                else:
-                    bot.sendMessage(chat_id, 'you are already connected')
+    if (msg == '/countdown'):  # Всем 3-х секундное ожидание
+        if ('g' in globals()):
+            g.countdown(3, 1, g.everybody())
 
 
 
+    m = re.search('/change_name ', msg)  # Смена имени
+    if (m != None):
+        new_name = (msg[m.span()[1]:])
+        if ('g' in globals()):
+            g.__players__[g.get_id(adr)]['name'] = new_name
+
+    m = re.search('/connect ', msg) # Коннект к игре
+    if (m != None):
+        connect_to = int(msg[m.span()[1]: ])
+        if (connect_to in games_list):
+            if (g.__players__ == {}):
+                bot.sendMessage(adr, 'connected')
+                g.add_player(adr) # добавляем игрока
+            elif (adr not in list(g.__players__.keys())):
+                bot.sendMessage(adr, 'connected')
+                g.add_player(adr) # добавляем игрока
+            else:
+                bot.sendMessage(adr, 'you are already connected')
+
+def time_handler(time_stamp):
+    if ('g' in globals()):
+        if g.__started__:
+            time_stamp += 1
+        if (time_stamp == int(g.__round_time__ * 30)): # половина времени прошло
+            mins = int(time_stamp/60)
+            secs = time_stamp - mins*60
+            g.say(g.everybody(), str(mins) + ' Min ' + str(secs) + ' Sec left...')
+        if (int(g.__round_time__ * 60) - time_stamp == 60): # осталась минута
+            g.say(g.everybody(), 'One minute left...')
+        if (time_stamp == g.__round_time__ * 60): # время раунда вышло
+            g.reload_abilities()
+            time_stamp = 0
+            g.countdown(3, 1, g.everybody())
+            g.__current_round__ += 1
+            g.say(g.everybody(),'ROUND ' + str(g.__current_round__))
+            g.report_status(g.everybody())
+    return time_stamp
 
 
 token = '371150676:AAFNeZ7lPfeuftBxUaXuc_Drrj6jgzvW4rA'
@@ -121,11 +152,20 @@ if (onstart_update != []):
     bot.getUpdates(offset=update_id)
 
 # Основной луп
-bot.message_loop(main)
-print('waiting for game ...')
+#bot.message_loop(main)
+#print('waiting for game ...')
+offset = 0
+time_stamp = 0
 
-
-
-# Keep the program running.
+# Basic loop
 while 1:
-    time.sleep(10)
+    time_stamp = time_handler(time_stamp)
+    pkgs = bot.getUpdates(offset = offset)
+    if pkgs != []: # сообщение/я пришло... обрабатываем
+        msg_num = len(pkgs) # число пришедших пакетов
+        for pkg in pkgs:    # обрабатываем последовательно
+            adr = pkg['message']['from']['id']
+            msg = pkg['message']['text']
+            msg_handler(adr, msg)
+        offset = int(pkgs[-1].get('update_id')) + 1
+    time.sleep(1)
