@@ -34,7 +34,7 @@ def incoming(update_id, players) :
     update_id = update_id + len(updates)
     for message in updates :
         users_voted.append(int(message.get('message').get('from').get('id')))
-        text_voted.append(message.get('message').get('text'))
+        text_voted.append(message.get('message').get('text')) 
     print 'u_v = ', users_voted
     print 't_v = ', text_voted
     players, end_game, start_game = parse_incoming(users_voted, text_voted, players)
