@@ -81,7 +81,8 @@ class game(object):
     def report_status(self, players):
         message = ''
         for player_id in self.__players__:
-            message += str(player_id) + ' - ' + self.__players__[player_id]['name'] + ' \n'
+            if (self.__players__[player_id]['alive']):
+                message += str(player_id) + ' - ' + self.__players__[player_id]['name'] + ' \n'
         for id in players:
             bot.sendMessage(id, message)
 
@@ -102,9 +103,159 @@ class game(object):
         for i in self.__players__:
             self.__players__[i]['acted'] = 0
 
+    def reset_pointers(self):
+        for i in self.__players__:
+            self.__players__[i]['pointer'] = 0
+
     # функция обновления игры
     def refresh(self, ):
-        None
+        # Голосование добра
+        # =======================================================
+        if (g.__roles__['cit_num'] != 0): # если мафия существует вообще
+            vote_cit = {id:0 for id in g.__players__ if g.__players__[id]['alive']} # пустой словарь распр. голосов
+            for id in g.__players__: # по всем игрокам
+                # кторые живы и горожане и указывают не на пустоту и у которых перезаряжена абилка
+                if ((g.__players__[id]['alive']) &
+                    (g.__players__[id]['role'] == 'cit') &
+                    (g.__players__[id]['pointer'] != 0) &
+                    (g.__players__[id]['acted'] == 0)):
+                    pntr = g.__players__[id]['pointer']
+                    if (g.__players__[pntr]['alive']): # если указывает на живого
+                        vote_cit[pntr] += 1
+            # Принятие решения по голосованию
+            for id in vote_cit:
+                # успешное голосование
+                if vote_cit[id] > (g.__roles__['cit_num'])/2: # простое большинство добра (попытка казни)
+
+                    # спас ли доктор
+                    vote_doc = {doc_id:[] for doc_id in g.__players__ if g.__players__[id]['alive']} # пустой словарь распр. голосов
+                    for doc_id in g.__players__:  # по всем игрокам
+                        # кторые живы и доктора и указывают не на пустоту и у которых перезаряжена абилка
+                        if ((g.__players__[doc_id]['alive']) &
+                                (g.__players__[doc_id]['role'] == 'doc') &
+                                (g.__players__[doc_id]['pointer'] != 0) &
+                                (g.__players__[doc_id]['acted'] == 0)):
+                            pntr_d = g.__players__[doc_id]['pointer']
+                            vote_doc[pntr_d].append(doc_id)
+                    if vote_doc[id] != []:
+                        # доктор спас
+                        doc = random.choice(vote_doc[id])
+                        g.say(g.alive(), 'CITIZENS FAILED \n' + g.__players__[id]['name'] + ' WAS SAVED BY DOC. ' + g.__players__[doc]['name'])
+                        # доктор отлечился сегодня
+                        g.__players__[doc]['acted'] = 1
+                        # горожане отстрелялись сегодня
+                        for id in g.__players__: # по всем игрокам
+                            # кторые живы и горожане
+                            if ((g.__players__[id]['alive']) &
+                                (g.__players__[id]['role'] == 'cit')):
+                                g.__players__[id]['acted'] = 1
+                    else:
+                        # не спас
+                        g.__players__[id]['alive'] = 0 # умерщвление
+                        g.say([g.__players__[id]['adr']], 'YOU WERE KILLED AT DAY VOTING')
+                        g.say(g.alive(), g.__players__[id]['name'] + ' WAS KILLED AT DAY VOTING')
+                        # горожане отстрелялись сегодня
+                        for id in g.__players__: # по всем игрокам
+                            # кторые живы и горожане
+                            if ((g.__players__[id]['alive']) &
+                                (g.__players__[id]['role'] == 'cit')):
+                                g.__players__[id]['acted'] = 1
+        #  =======================================================
+        # Убийство МАФИИ (лечение доктора)
+        # =======================================================
+        if (g.__roles__['maf_num'] != 0): # если мафия существует вообще
+            vote_maf = {id:0 for id in g.__players__ if g.__players__[id]['alive']} # пустой словарь распр. голосов
+            for id in g.__players__: # по всем игрокам
+                # кторые живы и мафы и указывают не на пустоту и у которых перезаряжена абилка
+                if ((g.__players__[id]['alive']) &
+                    (g.__players__[id]['role'] == 'maf') &
+                    (g.__players__[id]['pointer'] != 0) &
+                    (g.__players__[id]['acted'] == 0)):
+                    pntr_maf = g.__players__[id]['pointer']
+                    if (g.__players__[pntr_maf]['alive']): # если указывает на живого
+                        vote_maf[pntr_maf] += 1
+            # Принятие решения по голосованию
+            for id in vote_maf:
+                # успешное голосование
+                if vote_maf[id] == (g.__roles__['maf_num']): # единогласное голосование зла (попытка убийства)
+
+                    # спас ли доктор
+                    vote_doc = {doc_id:[] for doc_id in g.__players__ if g.__players__[id]['alive']} # пустой словарь распр. голосов
+                    for doc_id in g.__players__:  # по всем игрокам
+                        # кторые живы и доктора и указывают не на пустоту и у которых перезаряжена абилка
+                        if ((g.__players__[doc_id]['alive']) &
+                                (g.__players__[doc_id]['role'] == 'doc') &
+                                (g.__players__[doc_id]['pointer'] != 0) &
+                                (g.__players__[doc_id]['acted'] == 0)):
+                            pntr_d = g.__players__[doc_id]['pointer']
+                            vote_doc[pntr_d].append(doc_id)
+                    if vote_doc[id] != []:
+                        # доктор спас
+                        doc = random.choice(vote_doc[id])
+                        g.say(g.alive(), 'MAFS FAILED \n' + g.__players__[id]['name'] + ' WAS SAVED BY DOC. ' + g.__players__[doc]['name'])
+                        # доктор отлечился сегодня
+                        g.__players__[doc]['acted'] = 1
+                        # мафы отстрелялись сегодня
+                        for id in g.__players__: # по всем игрокам
+                            # кторые живы и мафы
+                            if ((g.__players__[id]['alive']) &
+                                (g.__players__[id]['role'] == 'maf')):
+                                g.__players__[id]['acted'] = 1
+                    else:
+                        # не спас
+                        g.__players__[id]['alive'] = 0 # умерщвление
+                        g.say([g.__players__[id]['adr']], 'YOU WERE KILLED BY MAFIOZI')
+                        g.say(g.alive(), g.__players__[id]['name'] + ' WAS KILLED BY MAFIOZI')
+                        # мафы отстрелялись сегодня
+                        for id in g.__players__: # по всем игрокам
+                            # кторые живы и мафы
+                            if ((g.__players__[id]['alive']) &
+                                (g.__players__[id]['role'] == 'maf')):
+                                g.__players__[id]['acted'] = 1
+        #  =======================================================
+        # Проверка коммисара
+        if (g.__roles__['com_num'] != 0): # если коммисар существует вообще
+            for id in g.__players__: # по всем игрокам
+                # кторые живы и коммисары и указывают не на пустоту и у которых перезаряжена абилка
+                if ((g.__players__[id]['alive']) &
+                    (g.__players__[id]['role'] == 'com') &
+                    (g.__players__[id]['pointer'] != 0) &
+                    (g.__players__[id]['acted'] == 0)):
+                    pntr_com = g.__players__[id]['pointer']
+                    if (g.__players__[pntr_com]['alive']): # если указывает на живого
+                        # коммисар получает информацию
+                        if g.__players__[pntr_com]['role'] == 'maf':
+                            g.say([g.__players__[id]['adr']], g.__players__[pntr_com]['name'] + ' IS MAF')
+                        else:
+                            g.say([g.__players__[id]['adr']], g.__players__[pntr_com]['name'] + ' IS NOT MAF')
+                        # коммисар отстрелялся
+                        g.__players__[id]['acted'] = 1
+        #  =======================================================
+        # Корректировка списка ролей
+        g.__roles__['maf_num'] = 0
+        g.__roles__['cit_num'] = 0
+        g.__roles__['doc_num'] = 0
+        g.__roles__['com_num'] = 0
+        for id in g.__players__: # по всем игрокам
+            # кторые живы
+            if ((g.__players__[id]['alive'])):
+                if (g.__players__[id]['role'] == 'maf'):
+                    g.__roles__['maf_num'] += 1
+                if (g.__players__[id]['role'] == 'cit'):
+                    g.__roles__['cit_num'] += 1
+                if (g.__players__[id]['role'] == 'doc'):
+                    g.__roles__['doc_num'] += 1
+                if (g.__players__[id]['role'] == 'com'):
+                    g.__roles__['com_num'] += 1
+
+        #  =======================================================
+        # Проверка игры на завершение
+        if g.__roles__['maf_num'] == 0:
+            g.say(g.everybody(), '======================\n==== good triumphed ====\n======================')
+            exit()
+        if (g.__roles__['cit_num'] == 0) & (g.__roles__['doc_num'] == 0) & (g.__roles__['com_num'] == 0):
+            g.say(g.everybody(), '======================\n==== mafia triumphed ====\n======================')
+            exit()
 
 def msg_handler(adr, msg):
     if (msg == '/start_game'):  # Хостится игра
@@ -156,8 +307,12 @@ def msg_handler(adr, msg):
                     # Начало игры
                     g.__started__ = 1
                     g.__current_round__ = 1
+                    g.reload_abilities()
+                    g.reset_pointers()
                     g.say(g.everybody(), 'GAME IS STARTED')
                     g.say(g.everybody(), 'ROUND 1')
+                    g.report_status(g.everybody())
+                    g.refresh()
 
     if (msg == '/game_list'):  # Проверка списка игр
         bot.sendMessage(adr, str(games_list))
@@ -209,6 +364,21 @@ def msg_handler(adr, msg):
             else:
                 bot.sendMessage(adr, 'you are already connected')
 
+    # смена указателя
+    if (msg.isdigit()): # пришло число
+        if ('g' in globals()): # игра существует
+            if (int(msg) in [i for i in range(len(g.__players__) + 1)]): # на существующего игрока
+                g.__players__[g.get_id(adr)]['pointer'] = int(msg) # меняем указатель
+                if int(msg) == 0:
+                    point_msg = 'nobody'
+                else:
+                    point_msg = msg + ' - ' + g.__players__[int(msg)]['name']
+                bot.sendMessage(adr, 'You point at \n' + point_msg)
+                g.refresh()
+
+
+
+
 def time_handler(time_stamp):
     if ('g' in globals()):
         if g.__started__:
@@ -221,8 +391,10 @@ def time_handler(time_stamp):
             g.say(g.everybody(), 'One minute left...')
         if (time_stamp == g.__round_time__ * 60): # время раунда вышло
             g.reload_abilities()
+            g.reset_pointers()
             time_stamp = 0
             g.countdown(3, 1, g.everybody())
+            g.refresh()
             g.__current_round__ += 1
             g.say(g.everybody(),'ROUND ' + str(g.__current_round__))
             g.report_status(g.everybody())
@@ -257,14 +429,15 @@ while 1:
         offset = int(pkgs[-1].get('update_id')) + 1
 
     # проверка на окончание кона
-    # в случае если все все сделали свои дела
+    # в случае если все ЖИВЫЕ сделали свои дела
     cont = 0
     if('g' in globals()):
         if g.__started__:
             for i in g.__players__:
-                if (g.__players__[i]['acted'] == 0):
-                    cont = 1
-            if ~cont:
+                if (g.__players__[i]['alive']):
+                    if (g.__players__[i]['acted'] == 0):
+                        cont = 1
+            if not cont:
                 time_stamp = g.__round_time__*60-1
 
 
