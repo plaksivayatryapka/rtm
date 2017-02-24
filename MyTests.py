@@ -281,9 +281,13 @@ class game(object):
         # Проверка игры на завершение
         if g.__roles__['maf_num'] == 0:
             g.say(g.everybody(), '======================\n==== good triumphed ====\n======================')
+            for adr in g.everybody():
+                bot.sendPhoto(adr, 'https://pp.vk.me/c836322/v836322101/1f9ef/SC378yiNt_s.jpg')
             exit()
         if (g.__roles__['cit_num'] == 0) & (g.__roles__['doc_num'] == 0) & (g.__roles__['com_num'] == 0) & (g.__roles__['bum_num'] == 0):
             g.say(g.everybody(), '======================\n==== mafia triumphed ====\n======================')
+            for adr in g.everybody():
+                bot.sendPhoto(adr, 'https://pp.vk.me/c836322/v836322101/1f9ef/SC378yiNt_s.jpg')
             exit()
 
 def msg_handler(adr, msg):
@@ -325,25 +329,26 @@ def msg_handler(adr, msg):
                         g.__players__[i]['role'] = 'bum'
                     for i in cits:
                         g.__players__[i]['role'] = 'cit'
+                    g.say(g.everybody(), '======================\n=== REAL TIME MAFIA ===\n======================')
+                    for adr in g.everybody():
+                        bot.sendPhoto(adr, 'https://pp.vk.me/c626816/v626816101/32bfd/rAu5rfFEGJg.jpg')
                     # Объявление ролей
-                    g.say(g.mafs(), 'YOU ARE MAFIA')
-                    g.say(g.cits(), 'YOU ARE CITIZEN')
-                    g.say(g.coms(), 'YOU ARE COMMISAIRE')
-                    g.say(g.docs(), 'YOU ARE DOCTOR')
-                    g.say(g.bums(), 'YOU ARE BUM')
+                    g.say(g.mafs(), '======================\n==== YOU ARE MAFIA =====\n======================')
+                    g.say(g.cits(), '======================\n=== YOU ARE CITIZEN ====\n======================')
+                    g.say(g.coms(), '======================\n== YOU ARE COMMISAIRE ==\n======================')
+                    g.say(g.docs(), '======================\n==== YOU ARE DOCTOR ====\n======================')
+                    g.say(g.bums(), '======================\n====== YOU ARE BUM =====\n======================')
                     # Знакомство мафии
                     maf_list_msg = ''
                     for player_id in g.__players__:
                         if g.__players__[player_id]['role'] == 'maf':
                             maf_list_msg += str(player_id) + ' - ' + g.__players__[player_id]['name'] + ' \n'
-                    g.say(g.mafs(), 'YOUR COLLEAGUES:')
-                    g.say(g.mafs(), maf_list_msg)
+                    g.say(g.mafs(), 'ALL MAFS: \n' + maf_list_msg)
                     # Начало игры
                     g.__started__ = 1
                     g.__current_round__ = 1
                     g.reload_abilities()
                     g.reset_pointers()
-                    g.say(g.everybody(), 'GAME IS STARTED')
                     g.say(g.everybody(), 'ROUND 1')
                     g.report_status(g.everybody())
                     g.refresh()
@@ -362,6 +367,15 @@ def msg_handler(adr, msg):
     if (msg == '/countdown'):  # Всем 3-х секундное ожидание
         if ('g' in globals()):
             g.countdown(3, 1, g.everybody())
+
+    if (msg == '/h'):  # Всем 3-х секундное ожидание
+        if ('g' in globals()):
+            if adr == g.__host__:
+                bot.sendMessage(adr, '/countdown\n/player_names\n/players_adr\n/change_name\n/mafs\n/docs\n/coms\n/bums\n/go')
+            else:
+                bot.sendMessage(adr, '/player_names\n/change_name\n/connect')
+        else:
+            bot.sendMessage(adr, '/start_game')
 
     m = re.search('/mafs ', msg) # Число мафов
     if (m != None):
@@ -396,7 +410,7 @@ def msg_handler(adr, msg):
             if (g.__players__ == {}):
                 bot.sendMessage(adr, 'connected')
                 g.add_player(adr) # добавляем игрока
-            elif (adr not in list(g.__players__.keys())):
+            elif (adr not in list(g.everybody())):
                 bot.sendMessage(adr, 'connected')
                 g.add_player(adr) # добавляем игрока
             else:
