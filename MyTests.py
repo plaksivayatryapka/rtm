@@ -22,6 +22,7 @@ class game(object):
             'cit_num':0,
             'doc_num':0,
             'com_num':0,
+            'bum_num':0
         }
         self.__round_time__ = 5
     def add_player(self, adr):
@@ -31,6 +32,7 @@ class game(object):
                                         'alive': 1,
                                         'pointer': 0,
                                         'acted': 0,
+                                        'last_vote': 0,
                                         'role': None
                                       }
         self.__player_num__ += 1
@@ -71,6 +73,13 @@ class game(object):
         arr = []
         for i in self.__players__:
             if (self.__players__[i]['role'] == 'doc'):
+                arr.append(self.__players__[i]['adr'])
+        return arr
+
+    def bums(self):
+        arr = []
+        for i in self.__players__:
+            if (self.__players__[i]['role'] == 'bum'):
                 arr.append(self.__players__[i]['adr'])
         return arr
 
@@ -140,7 +149,7 @@ class game(object):
                     if vote_doc[id] != []:
                         # доктор спас
                         doc = random.choice(vote_doc[id])
-                        g.say(g.alive(), 'CITIZENS FAILED \n' + g.__players__[id]['name'] + ' WAS SAVED BY DOC. ' + g.__players__[doc]['name'])
+                        g.say(g.alive(), 'CITIZENS FAILED \n' + g.__players__[id]['name'] + ' WAS SAVED BY DOCTOR')
                         # доктор отлечился сегодня
                         g.__players__[doc]['acted'] = 1
                         # горожане отстрелялись сегодня
@@ -192,7 +201,7 @@ class game(object):
                     if vote_doc[id] != []:
                         # доктор спас
                         doc = random.choice(vote_doc[id])
-                        g.say(g.alive(), 'MAFS FAILED \n' + g.__players__[id]['name'] + ' WAS SAVED BY DOC. ' + g.__players__[doc]['name'])
+                        g.say(g.alive(), 'MAFS FAILED \n' + g.__players__[id]['name'] + ' WAS SAVED BY DOCTOR')
                         # доктор отлечился сегодня
                         g.__players__[doc]['acted'] = 1
                         # мафы отстрелялись сегодня
@@ -231,11 +240,30 @@ class game(object):
                         # коммисар отстрелялся
                         g.__players__[id]['acted'] = 1
         #  =======================================================
+        # Бомж бухает
+        if (g.__roles__['bum_num'] != 0): # если бомж существует вообще
+            for id in g.__players__: # по всем игрокам
+                # кторые живы и бомжи и указывают не на пустоту и у которых перезаряжена абилка
+                if ((g.__players__[id]['alive']) &
+                    (g.__players__[id]['role'] == 'bum') &
+                    (g.__players__[id]['pointer'] != 0) &
+                    (g.__players__[id]['acted'] == 0)):
+                    pntr_bum = g.__players__[id]['pointer']
+                    if (g.__players__[pntr_bum]['alive']): # если указывает на живого
+                        if (g.__players__[id]['last_vote'] != pntr_bum): # если не указывает второй раз подряд
+                            # бомж лишает абилки
+                            g.say(g.alive(), g.__players__[pntr_bum]['name'] + ' WAS DRINKING WITH BUM')
+                            g.__players__[id]['last_vote'] = pntr_bum
+                            g.__players__[pntr_bum]['acted'] = 1
+                            # бомж отбомжился
+                            g.__players__[id]['acted'] = 1
+        #  =======================================================
         # Корректировка списка ролей
         g.__roles__['maf_num'] = 0
         g.__roles__['cit_num'] = 0
         g.__roles__['doc_num'] = 0
         g.__roles__['com_num'] = 0
+        g.__roles__['bum_num'] = 0
         for id in g.__players__: # по всем игрокам
             # кторые живы
             if ((g.__players__[id]['alive'])):
@@ -247,13 +275,14 @@ class game(object):
                     g.__roles__['doc_num'] += 1
                 if (g.__players__[id]['role'] == 'com'):
                     g.__roles__['com_num'] += 1
-
+                if (g.__players__[id]['role'] == 'bum'):
+                    g.__roles__['bum_num'] += 1
         #  =======================================================
         # Проверка игры на завершение
         if g.__roles__['maf_num'] == 0:
             g.say(g.everybody(), '======================\n==== good triumphed ====\n======================')
             exit()
-        if (g.__roles__['cit_num'] == 0) & (g.__roles__['doc_num'] == 0) & (g.__roles__['com_num'] == 0):
+        if (g.__roles__['cit_num'] == 0) & (g.__roles__['doc_num'] == 0) & (g.__roles__['com_num'] == 0) & (g.__roles__['bum_num'] == 0):
             g.say(g.everybody(), '======================\n==== mafia triumphed ====\n======================')
             exit()
 
@@ -281,7 +310,9 @@ def msg_handler(adr, msg):
                     docs = random.sample(rest, g.__roles__['doc_num'])
                     rest = [i for i in rest if i not in docs]
                     coms = random.sample(rest, g.__roles__['com_num'])
-                    cits = [i for i in rest if i not in coms]
+                    rest = [i for i in rest if i not in coms]
+                    bums = random.sample(rest, g.__roles__['bum_num'])
+                    cits = [i for i in rest if i not in bums]
                     g.__roles__['cit_num'] = len(cits)
                     # присвоение ролей
                     for i in mafs:
@@ -290,6 +321,8 @@ def msg_handler(adr, msg):
                         g.__players__[i]['role'] = 'doc'
                     for i in coms:
                         g.__players__[i]['role'] = 'com'
+                    for i in bums:
+                        g.__players__[i]['role'] = 'bum'
                     for i in cits:
                         g.__players__[i]['role'] = 'cit'
                     # Объявление ролей
@@ -297,6 +330,7 @@ def msg_handler(adr, msg):
                     g.say(g.cits(), 'YOU ARE CITIZEN')
                     g.say(g.coms(), 'YOU ARE COMMISAIRE')
                     g.say(g.docs(), 'YOU ARE DOCTOR')
+                    g.say(g.bums(), 'YOU ARE BUM')
                     # Знакомство мафии
                     maf_list_msg = ''
                     for player_id in g.__players__:
@@ -344,6 +378,10 @@ def msg_handler(adr, msg):
         com_num = int(msg[m.span()[1]: ])
         g.__roles__['com_num'] = com_num
 
+    m = re.search('/bums ', msg) # Число коммисаров
+    if (m != None):
+        bum_num = int(msg[m.span()[1]: ])
+        g.__roles__['bum_num'] = bum_num
 
     m = re.search('/change_name ', msg)  # Смена имени
     if (m != None):
