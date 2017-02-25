@@ -26,8 +26,8 @@ def set_roles(players_count, phonebook, names, drink_period):
         players_list.append(i)
     if players_count == 2:
         mafs_count = 1
-        coms_count = 1
-        docs_count = 0
+        coms_count = 0
+        docs_count = 1
         drinker_count = 0
 
     mafs = list(random.sample(players_list, mafs_count))
@@ -205,9 +205,9 @@ def check_goods_murder(players, all_able_kill, docs, Counter, doctor_cured_info)
                     if players[doc]['cure'] == killed:
                         cured = 1
                         if doctor_cured_info is True:
-                            for maf in mafs:
-                                if players[maf]['alive'] != 0:
-                                    TelegramBot.sendMessage(players[maf]['id'], "doc cured")
+                            for key, value in players.items():
+                                if players[key]['alive'] != 0:
+                                    TelegramBot.sendMessage(players[key]['id'], "doc cured")
                 if cured == 0:
                     players[killed]['alive'] = 0
                     TelegramBot.sendMessage(players[killed]['id'], "you're dead!")
