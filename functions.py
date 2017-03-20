@@ -11,7 +11,7 @@ def isint(data):
 
 
 def bot_init():
-    token = '361539776:AAFSBN4saYHbChStFQF2pqkwST9IpVGHJ5g'  # bot id. Botname in telegram is realtimemafiabot
+    token = ''  # bot id. Botname in telegram is realtimemafiabot
     TelegramBot = telepot.Bot(token)
 
     onstart_update = TelegramBot.getUpdates()
