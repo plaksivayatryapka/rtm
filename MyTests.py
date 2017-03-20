@@ -453,7 +453,7 @@ def time_handler(time_stamp):
     return time_stamp
 
 
-token = '371150676:AAFNeZ7lPfeuftBxUaXuc_Drrj6jgzvW4rA'
+token = ''
 bot = telepot.Bot(token)
 # Очистка кэша
 onstart_update = bot.getUpdates()
